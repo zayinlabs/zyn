@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor & Lampiran Dokumen</title>
+    <style>
+        /* --- GLOBAL STYLE --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #333;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* --- MAIN PAGE UI --- */
+        .main-container {
+            width: 100%;
+            max-width: 800px;
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .section-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Editor Area */
+        .editor-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .editor-toolbar {
+            background-color: #f8fafc;
+            border-bottom: 1px solid #cbd5e1;
+            padding: 10px 16px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            color: #334155;
+            font-size: 16px;
+        }
+
+        .editor-toolbar span {
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 4px;
+        }
+        .editor-toolbar span:hover { background: #e2e8f0; }
+
+        .editor-content {
+            min-height: 250px;
+            padding: 16px;
+            outline: none;
+            font-size: 14px;
+            color: #1e293b;
+        }
+
+        /* Lampiran Area */
+        .lampiran-area { margin-top: 10px; }
+        .empty-state { font-size: 13px; color: #94a3b8; font-style: italic; margin-bottom: 12px; }
+        .lampiran-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+        
+        .lampiran-item {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #f1f5f9; padding: 8px 12px; border-radius: 6px;
+            font-size: 14px; border: 1px solid #e2e8f0;
+        }
+        .btn-remove-lampiran { color: #ef4444; cursor: pointer; font-weight: bold; border: none; background: none; }
+
+        .btn-outline {
+            background-color: white; border: 1px solid #cbd5e1; color: #475569;
+            padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; font-weight: 500; transition: 0.2s;
+        }
+        .btn-outline:hover { background-color: #f1f5f9; border-color: #94a3b8; }
+
+        /* --- MODAL STYLE --- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); justify-content: center; align-items: center; z-index: 1000;
+        }
+
+        #modalForm { z-index: 1010; }
+
+        .modal-content {
+            background-color: white; padding: 24px; border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;
+        }
+        .modal-repo { width: 850px; } 
+        .modal-form { width: 400px; }
+
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;
+        }
+        .modal-header h3 { margin: 0; color: #1e293b; font-size: 18px; }
+        .btn-close-modal { background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; }
+
+        /* Kotak Pencarian Repo */
+        .search-box { margin-bottom: 16px; }
+        .search-box input {
+            width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1;
+            border-radius: 6px; font-size: 14px; box-sizing: border-box; transition: 0.2s;
+        }
+        .search-box input:focus { outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2); }
+
+        /* Tabel Repo */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+        table th, table td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        table th { background-color: #f8fafc; color: #475569; font-weight: 600; }
+        table tr:hover { background-color: #f1f5f9; }
+
+        /* Tombol Aksi di Tabel */
+        .action-buttons {
+            display: flex; gap: 8px; align-items: center;
+        }
+
+        .btn-pilih {
+            background-color: #0ea5e9; color: white; border: none; padding: 6px 12px;
+            border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;
+        }
+        .btn-pilih:hover { background-color: #0284c7; }
+
+        .btn-lihat {
+            background-color: #14b8a6; color: white; border: none; padding: 6px 12px;
+            border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;
+        }
+        .btn-lihat:hover { background-color: #0d9488; }
+
+        /* Tombol Modal Umum */
+        .btn-primary {
+            background-color: #2563eb; color: white; border: none; padding: 8px 16px;
+            border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;
+        }
+        .btn-primary:hover { background-color: #1d4ed8; }
+        .btn-secondary {
+            background-color: #e2e8f0; color: #475569; border: none; padding: 8px 16px;
+            border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;
+        }
+
+        /* Form Controls */
+        .form-group { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 13px; font-weight: 600; color: #475569; }
+        
+        /* PERBAIKAN: Menambahkan .input-group input[type="text"] agar lebarnya 100% dan rapi */
+        .form-group input[type="text"], 
+        .form-group select,
+        .input-group input[type="text"] {
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            box-sizing: border-box;
+        }
+        .form-group input[type="text"]:focus, 
+        .form-group select:focus,
+        .input-group input[type="text"]:focus {
+            outline: none; border-color: #0ea5e9;
+        }
+
+        .mode-selector {
+            display: flex; gap: 16px; margin-top: 20px; margin-bottom: 12px;
+            padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 14px; color: #475569;
+        }
+        .input-group { display: none; margin-bottom: 20px; }
+        .input-group.active { display: block; }
+        input[type="file"] { width: 100%; padding: 10px; border: 1px dashed #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+        /* Keterangan URL */
+        .url-hint {
+            font-size: 12px;
+            color: #ef4444; 
+            margin-top: 8px;
+            line-height: 1.4;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+        }
+        .url-hint span { font-size: 14px; } 
+
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        
+        <div class="section-label">JAWABAN</div>
+        <div class="editor-box">
+            <div class="editor-toolbar">
+                <span style="font-weight: bold;">B</span>
+                <span style="font-style: italic;">I</span>
+                <span style="text-decoration: underline;">U</span>
+                <span style="color:#cbd5e1;">|</span>
+                <span>&#8801;</span>
+                <span>&#8803;</span>
+                <span style="color:#cbd5e1;">|</span>
+                <span>&#128279;</span>
+                <span>&#9638;</span>
+            </div>
+            <div class="editor-content" contenteditable="true" placeholder="Ketik jawaban Anda di sini..."></div>
+        </div>
+
+        <div class="section-label">LAMPIRAN</div>
+        <div class="lampiran-area">
+            <div id="lampiranList" class="lampiran-list"></div>
+            <div id="emptyLampiran" class="empty-state">Belum ada lampiran</div>
+            <button class="btn-outline" id="btnBukaRepo">
+                <span>&#8673;</span> Tambah Dokumen
+            </button>
+        </div>
+
+    </div>
+
+    <div class="modal-overlay" id="modalRepo">
+        <div class="modal-content modal-repo">
+            <div class="modal-header">
+                <h3>Repositori Dokumen</h3>
+                <button class="btn-close-modal" id="btnCloseRepo">&times;</button>
+            </div>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Cari nama, nomor, atau kategori dokumen...">
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nomor Dokumen</th>
+                        <th>Nama Dokumen</th>
+                        <th>Kategori</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td>Lap-2023-001</td>
+                        <td>Laporan Tahunan 2023</td>
+                        <td>Laporan</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-lihat" onclick="lihatDokumen('Laporan Tahunan 2023')">Lihat</button>
+                                <button class="btn-pilih" onclick="pilihDokumen(this, 'Laporan Tahunan 2023')">Pilih</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>1375 Tahun 2023</td>
+                        <td>Panduan Audit Mutu</td>
+                        <td>Pedoman</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-lihat" onclick="lihatDokumen('Panduan Audit Mutu')">Lihat</button>
+                                <button class="btn-pilih" onclick="pilihDokumen(this, 'Panduan Audit Mutu')">Pilih</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>SOP-2025-001</td>
+                        <td>SOP Registrasi</td>
+                        <td>SOP</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-lihat" onclick="lihatDokumen('SOP Registrasi')">Lihat</button>
+                                <button class="btn-pilih" onclick="pilihDokumen(this, 'SOP Registrasi')">Pilih</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="modal-actions">
+                <button class="btn-secondary" id="btnBatalRepo">Batal</button>
+                <button class="btn-primary" id="btnBukaForm">Tambah Dokumen</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalForm">
+        <div class="modal-content modal-form">
+            <div class="modal-header">
+                <h3>Tambah Dokumen</h3>
+                <button class="btn-close-modal" id="btnCloseForm">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Nama Dokumen</label>
+                <input type="text" id="docName" placeholder="Contoh: Laporan Kegiatan">
+            </div>
+
+            <div class="form-group">
+                <label>Nomor Dokumen</label>
+                <input type="text" id="docNumber" placeholder="Contoh: Doc/001/2023">
+            </div>
+
+            <div class="form-group">
+                <label>Kategori</label>
+                <select id="docCategory">
+                    <option value="" disabled selected>-- Pilih Kategori --</option>
+                    <option value="Laporan">Laporan</option>
+                    <option value="Pedoman">Pedoman</option>
+                    <option value="SOP">SOP</option>
+                    <option value="Lainnya">Lainnya</option>
+                </select>
+            </div>
+            
+            <div class="mode-selector">
+                <label><input type="radio" name="uploadMode" value="upload" checked> Upload File</label>
+                <label><input type="radio" name="uploadMode" value="url"> Tambah Link</label>
+            </div>
+
+            <div id="groupUpload" class="input-group active">
+                <input type="file" id="fileInput">
+            </div>
+            <div id="groupUrl" class="input-group">
+                <input type="text" id="urlInput" placeholder="https://contoh-link.ac.id/file.pdf">
+                <div class="url-hint">
+                    <span>⚠️</span>
+                    Untuk link dari penyimpanan awan (seperti Google Drive), pastikan izin akses file sudah publik.
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-secondary" id="btnBatalForm">Kembali</button>
+                <button class="btn-primary" id="btnSimpanForm">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const btnBukaRepo = document.getElementById('btnBukaRepo');
+        const lampiranList = document.getElementById('lampiranList');
+        const emptyLampiran = document.getElementById('emptyLampiran');
+
+        const modalRepo = document.getElementById('modalRepo');
+        const btnCloseRepo = document.getElementById('btnCloseRepo');
+        const btnBatalRepo = document.getElementById('btnBatalRepo');
+        const btnBukaForm = document.getElementById('btnBukaForm');
+        const tableBody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+
+        const modalForm = document.getElementById('modalForm');
+        const btnCloseForm = document.getElementById('btnCloseForm');
+        const btnBatalForm = document.getElementById('btnBatalForm');
+        const btnSimpanForm = document.getElementById('btnSimpanForm');
+        
+        const docName = document.getElementById('docName');
+        const docNumber = document.getElementById('docNumber');
+        const docCategory = document.getElementById('docCategory');
+        const radioModes = document.querySelectorAll('input[name="uploadMode"]');
+        const groupUpload = document.getElementById('groupUpload');
+        const groupUrl = document.getElementById('groupUrl');
+        const fileInput = document.getElementById('fileInput');
+        const urlInput = document.getElementById('urlInput');
+
+        // BUKA REPOSITORY
+        btnBukaRepo.addEventListener('click', () => { modalRepo.style.display = 'flex'; });
+        btnCloseRepo.addEventListener('click', () => { modalRepo.style.display = 'none'; searchInput.value = ''; triggerSearch(); });
+        btnBatalRepo.addEventListener('click', () => { modalRepo.style.display = 'none'; searchInput.value = ''; triggerSearch(); });
+
+        // LOGIKA PENCARIAN (REAL-TIME FILTERING)
+        function triggerSearch() {
+            const filter = searchInput.value.toLowerCase();
+            const rows = tableBody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const rowText = rows[i].textContent || rows[i].innerText;
+                if (rowText.toLowerCase().indexOf(filter) > -1) {
+                    rows[i].style.display = '';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+        }
+        searchInput.addEventListener('input', triggerSearch);
+
+        // BUKA FORM DARI REPOSITORY
+        btnBukaForm.addEventListener('click', () => { modalForm.style.display = 'flex'; });
+        
+        function tutupForm() {
+            modalForm.style.display = 'none';
+            docName.value = ''; docNumber.value = ''; docCategory.value = '';
+            fileInput.value = ''; urlInput.value = '';
+        }
+        btnCloseForm.addEventListener('click', tutupForm);
+        btnBatalForm.addEventListener('click', tutupForm);
+
+        // Toggle Upload vs URL
+        radioModes.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'upload') {
+                    groupUpload.classList.add('active'); groupUrl.classList.remove('active');
+                } else {
+                    groupUrl.classList.add('active'); groupUpload.classList.remove('active');
+                }
+            });
+        });
+
+        // SIMPAN DOKUMEN BARU KE TABEL
+        btnSimpanForm.addEventListener('click', () => {
+            const nameVal = docName.value.trim();
+            const numberVal = docNumber.value.trim();
+            const categoryVal = docCategory.value;
+
+            if (!nameVal || !numberVal || !categoryVal) {
+                alert('Mohon lengkapi Nama, Nomor, dan Kategori dokumen!');
+                return;
+            }
+
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${numberVal}</td>
+                <td>${nameVal}</td>
+                <td>${categoryVal}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-lihat" onclick="lihatDokumen('${nameVal}')">Lihat</button>
+                        <button class="btn-pilih" onclick="pilihDokumen(this, '${nameVal}')">Pilih</button>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(newRow);
+
+            alert('Dokumen berhasil ditambahkan ke Repository!');
+            tutupForm();
+            triggerSearch();
+        });
+
+        // FUNGSI LIHAT DOKUMEN (PREVIEW)
+        window.lihatDokumen = function(namaDokumen) {
+            alert('Sedang memuat preview untuk dokumen:\n' + namaDokumen);
+        };
+
+        // PILIH DOKUMEN KE LAMPIRAN
+        window.pilihDokumen = function(buttonObj, namaDokumen) {
+            emptyLampiran.style.display = 'none';
+
+            const item = document.createElement('div');
+            item.className = 'lampiran-item';
+            item.innerHTML = `
+                <span>📄 ${namaDokumen}</span>
+                <button class="btn-remove-lampiran" onclick="hapusLampiran(this)">✕</button>
+            `;
+            
+            lampiranList.appendChild(item);
+            
+            modalRepo.style.display = 'none';
+            searchInput.value = ''; 
+            triggerSearch(); 
+        };
+
+        // HAPUS LAMPIRAN
+        window.hapusLampiran = function(btnObj) {
+            const item = btnObj.parentElement;
+            lampiranList.removeChild(item);
+
+            if(lampiranList.children.length === 0) {
+                emptyLampiran.style.display = 'block';
+            }
+        };
+    </script>
+</body>
+</html>
